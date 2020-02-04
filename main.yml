@@ -71,6 +71,10 @@
     file:
       path: /usr/share/tomcat/webapps/ROOT
       state: directory
+  - name: create ansible tomcat webapps directory
+    file: 
+      path: /usr/share/tomcat/webapps/ansible/
+      state: directory
 
   - name: copy static index.html to tomcat webapps/ansible/index.html
     template:
@@ -87,6 +91,15 @@
   hosts: app1
   gather_facts: false
   become: true
+  
+#  tasks: 
+#  - name: create /usr/share/tomcat/webapps/ansible
+#    file: 
+#      state: directory
+#      path: /usr/share/tomcat/webapps/ansible
+#      owner: root
+#      group: root
+#      mode: u=rwx,go=rx
 
   tasks:
   - name: copy static index.html to tomcat webapps/ansible/index.html
@@ -98,6 +111,15 @@
   hosts: app2
   gather_facts: false
   become: true
+  
+#  tasks:
+#  - name: create /usr/share/tomcat/webapps/ansible
+#    file:
+#      state: directory
+#      path: /usr/share/tomcat/webapps/ansible
+#      owner: root
+#      group: root
+#      mode: u=rwx,go=rx
 
   tasks:
   - name: copy static index.html to tomcat webapps/ansible/index.html
@@ -106,7 +128,6 @@
       dest: /usr/share/tomcat/webapps/ansible/index.html
 
 - name: deploy postgres
-  hosts: apps
   gather_facts: false
   become: true
   hosts: appdbs
@@ -118,19 +139,24 @@
   #  yum:
   #    name: postgresql-server
   #    state: latest
-  - name: enable apache at boot
+  - name: enable postgresql at boot
     service:
       name: postgresql
       enabled: yes
-  - name: tell user to finish setting up postgres
-    debug:
-      msg: "Either uncomment the postgres setup or manually login and initialize"
+#  - name: tell user to finish setting up postgres
+#    debug:
+#      msg: "Either uncomment the postgres setup or manually login and initialize"
 
  # only run the next 2 tasks once!
-#  - name: initilize postgres
-#    command: postgresql-setup initdb
-#  - name: initilize postgres some more
-#    command: chkconfig postgresql on
+  - name: initilize postgresql
+    command: postgresql-setup initdb
+    register: r_postgress_initdb
+    failed_when:
+    - r_postgress_initdb.rc!=0
+    - r_postgress_initdb.stdout !='Data directory is not empty'
+    changed_when:
+    - r_postgress_initdb.rc == 0
+
   - name: start postgres
     service:
       name: postgresql.service
